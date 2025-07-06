@@ -59,6 +59,14 @@ const HRDashboard: React.FC = () => {
       setUserProfile(profile);
     } else if (error) {
       console.error('Error fetching user profile:', error);
+      
+      // Check if the error is due to an invalid/expired session
+      if (error.message && error.message.includes('Session from session_id claim in JWT does not exist')) {
+        console.log('Session expired, signing out user');
+        await handleSignOut();
+        return;
+      }
+      
       // Create a default profile if it doesn't exist
       const { data: newProfile, error: createError } = await supabase
         .from('profiles')
@@ -76,6 +84,13 @@ const HRDashboard: React.FC = () => {
         setUserProfile(newProfile);
       } else {
         console.error('Error creating user profile:', createError);
+        
+        // Check if the profile creation error is also due to session issues
+        if (createError?.message && createError.message.includes('Session from session_id claim in JWT does not exist')) {
+          console.log('Session expired during profile creation, signing out user');
+          await handleSignOut();
+          return;
+        }
       }
     }
   };
