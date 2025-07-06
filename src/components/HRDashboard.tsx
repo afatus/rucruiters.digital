@@ -152,6 +152,13 @@ const HRDashboard: React.FC = () => {
   const fetchJobs = async () => {
     if (!userProfile) return;
     
+    console.log('Fetching jobs for user:', {
+      userId: user?.id,
+      userRole: userProfile.role,
+      jwtRole: jwtRole,
+      tenantId: userProfile.tenant_id
+    });
+    
     let query = supabase
       .from('jobs')
       .select(`
@@ -161,20 +168,13 @@ const HRDashboard: React.FC = () => {
       `)
       .order('created_at', { ascending: false });
 
-    // Filter jobs based on user role
-    if (userProfile.role === 'hiring_manager') {
-      query = query.eq('hiring_manager_id', userProfile.id);
-    } else if (userProfile.role === 'line_manager') {
-      query = query.eq('line_manager_id', userProfile.id);
-    } else {
-      // For other roles (recruiter, hr_operations), filter by tenant
-      // Only super_admin and it_admin can see all tenants
-      if (jwtRole !== 'super_admin' && jwtRole !== 'it_admin') {
-        query = query.eq('tenant_id', userProfile.tenant_id);
-      }
-    }
+    // it_admin ve super_admin tüm job'ları görebilir
+    // Diğer roller için RLS politikaları otomatik olarak filtreleme yapacak
+    console.log('JWT Role:', jwtRole, 'User Role:', userProfile.role);
 
     const { data, error } = await query;
+    
+    console.log('Jobs query result:', { data: data?.length, error });
     
     if (data) setJobs(data);
     if (error) console.error('Error fetching jobs:', error);
