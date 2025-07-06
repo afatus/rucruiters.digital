@@ -5,15 +5,23 @@ import {
   BarChart3, PieChart, Activity, AlertCircle
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { ATSAnalytics, Application, EnhancedJob, Candidate } from '../../types/ats';
 
 interface ATSDashboardProps {
   userProfile: any;
 }
 
+interface DashboardAnalytics {
+  totalInterviews: number;
+  activeJobs: number;
+  completedInterviews: number;
+  averageScore: number;
+  pendingInterviews: number;
+  recentInterviews: any[];
+}
+
 const ATSDashboard: React.FC<ATSDashboardProps> = ({ userProfile }) => {
-  const [analytics, setAnalytics] = useState<ATSAnalytics | null>(null);
-  const [recentApplications, setRecentApplications] = useState<Application[]>([]);
+  const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
+  const [recentInterviews, setRecentInterviews] = useState<any[]>([]);
   const [urgentTasks, setUrgentTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTimeRange, setSelectedTimeRange] = useState('30d');
@@ -27,7 +35,7 @@ const ATSDashboard: React.FC<ATSDashboardProps> = ({ userProfile }) => {
     try {
       await Promise.all([
         fetchAnalytics(),
-        fetchRecentApplications(),
+        fetchRecentInterviews(),
         fetchUrgentTasks()
       ]);
     } catch (error) {
@@ -44,13 +52,12 @@ const ATSDashboard: React.FC<ATSDashboardProps> = ({ userProfile }) => {
     const days = selectedTimeRange === '7d' ? 7 : selectedTimeRange === '30d' ? 30 : 90;
     startDate.setDate(endDate.getDate() - days);
 
-    // Fetch applications data
-    const { data: applications } = await supabase
-      .from('applications')
+    // Fetch interviews data
+    const { data: interviews } = await supabase
+      .from('interviews')
       .select(`
         *,
-        jobs(title, department_id),
-        candidates(first_name, last_name)
+        jobs(title, company)
       `)
       .gte('created_at', startDate.toISOString())
       .lte('created_at', endDate.toISOString());
@@ -58,119 +65,85 @@ const ATSDashboard: React.FC<ATSDashboardProps> = ({ userProfile }) => {
     // Fetch jobs data
     const { data: jobs } = await supabase
       .from('jobs')
-      .select('*')
-      .eq('status', 'published');
+      .select('*');
 
-    if (applications && jobs) {
-      // Calculate analytics
-      const totalApplications = applications.length;
+    if (interviews && jobs) {
+      const totalInterviews = interviews.length;
       const activeJobs = jobs.length;
-      const candidatesInPipeline = applications.filter(app => 
-        !['hired', 'rejected', 'withdrawn'].includes(app.status)
+      const completedInterviews = interviews.filter(interview => 
+        interview.status === 'completed'
+      ).length;
+      const pendingInterviews = interviews.filter(interview => 
+        interview.status === 'pending'
       ).length;
 
-      // Calculate conversion rates
-      const interviewStages = ['phone_interview', 'technical_interview', 'final_interview'];
-      const applicationsWithInterview = applications.filter(app => 
-        interviewStages.includes(app.status)
-      ).length;
-      const offersExtended = applications.filter(app => 
-        ['offer_made', 'offer_accepted', 'hired'].includes(app.status)
-      ).length;
-      const hired = applications.filter(app => app.status === 'hired').length;
-
-      const conversionRates = {
-        applicationToInterview: totalApplications > 0 ? (applicationsWithInterview / totalApplications) * 100 : 0,
-        interviewToOffer: applicationsWithInterview > 0 ? (offersExtended / applicationsWithInterview) * 100 : 0,
-        offerToHire: offersExtended > 0 ? (hired / offersExtended) * 100 : 0
-      };
-
-      // Calculate top sources
-      const sourceCounts = applications.reduce((acc, app) => {
-        const source = app.source || 'Direct';
-        acc[source] = (acc[source] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-      const topSources = Object.entries(sourceCounts)
-        .map(([source, count]) => ({
-          source,
-          count,
-          percentage: (count / totalApplications) * 100
-        }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 5);
-
-      // Calculate average time to hire (mock data for now)
-      const averageTimeToHire = 21; // days
+      // Calculate average score for completed interviews
+      const completedWithScores = interviews.filter(interview => 
+        interview.status === 'completed' && interview.overall_score > 0
+      );
+      const averageScore = completedWithScores.length > 0 
+        ? completedWithScores.reduce((sum, interview) => sum + interview.overall_score, 0) / completedWithScores.length
+        : 0;
 
       setAnalytics({
-        totalApplications,
+        totalInterviews,
         activeJobs,
-        candidatesInPipeline,
-        averageTimeToHire,
-        conversionRates,
-        topSources,
-        departmentMetrics: [], // Will be calculated with department data
-        monthlyTrends: [] // Will be calculated with historical data
+        completedInterviews,
+        averageScore,
+        pendingInterviews,
+        recentInterviews: interviews.slice(0, 10)
       });
     }
   };
 
-  const fetchRecentApplications = async () => {
+  const fetchRecentInterviews = async () => {
     const { data } = await supabase
-      .from('applications')
+      .from('interviews')
       .select(`
         *,
-        jobs(title, company),
-        candidates(first_name, last_name, email)
+        jobs(title, company)
       `)
       .order('created_at', { ascending: false })
       .limit(10);
 
     if (data) {
-      setRecentApplications(data);
+      setRecentInterviews(data);
     }
   };
 
   const fetchUrgentTasks = async () => {
-    // Fetch overdue interviews, pending feedback, etc.
-    const { data: overdueInterviews } = await supabase
-      .from('interview_schedules')
+    // Fetch pending interviews that need attention
+    const { data: pendingInterviews } = await supabase
+      .from('interviews')
       .select(`
         *,
-        applications(
-          jobs(title),
-          candidates(first_name, last_name)
-        )
+        jobs(title, company)
       `)
-      .eq('status', 'scheduled')
-      .lt('scheduled_at', new Date().toISOString());
+      .eq('status', 'pending')
+      .lt('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()); // Older than 7 days
 
-    const { data: pendingFeedback } = await supabase
-      .from('interview_schedules')
+    // Fetch completed interviews without analysis
+    const { data: completedWithoutAnalysis } = await supabase
+      .from('interviews')
       .select(`
         *,
-        applications(
-          jobs(title),
-          candidates(first_name, last_name)
-        )
+        jobs(title, company)
       `)
       .eq('status', 'completed')
-      .eq('feedback_submitted', false);
+      .is('summary', null);
 
     const tasks = [
-      ...(overdueInterviews || []).map(interview => ({
-        type: 'overdue_interview',
-        title: 'Overdue Interview',
-        description: `Interview with ${interview.applications?.candidates?.first_name} ${interview.applications?.candidates?.last_name}`,
+      ...(pendingInterviews || []).map(interview => ({
+        type: 'stale_interview',
+        title: 'Stale Interview',
+        description: `Interview with ${interview.candidate_name} has been pending for over 7 days`,
         priority: 'high',
         data: interview
       })),
-      ...(pendingFeedback || []).map(interview => ({
-        type: 'pending_feedback',
-        title: 'Pending Feedback',
-        description: `Feedback needed for ${interview.applications?.candidates?.first_name} ${interview.applications?.candidates?.last_name}`,
+      ...(completedWithoutAnalysis || []).map(interview => ({
+        type: 'missing_analysis',
+        title: 'Missing Analysis',
+        description: `Completed interview with ${interview.candidate_name} needs review`,
         priority: 'medium',
         data: interview
       }))
@@ -181,15 +154,9 @@ const ATSDashboard: React.FC<ATSDashboardProps> = ({ userProfile }) => {
 
   const getStatusColor = (status: string) => {
     const colors = {
-      applied: 'bg-blue-100 text-blue-800',
-      screening: 'bg-yellow-100 text-yellow-800',
-      phone_interview: 'bg-purple-100 text-purple-800',
-      technical_interview: 'bg-indigo-100 text-indigo-800',
-      final_interview: 'bg-orange-100 text-orange-800',
-      offer_made: 'bg-green-100 text-green-800',
-      hired: 'bg-green-200 text-green-900',
-      rejected: 'bg-red-100 text-red-800',
-      withdrawn: 'bg-gray-100 text-gray-800'
+      pending: 'bg-yellow-100 text-yellow-800',
+      in_progress: 'bg-blue-100 text-blue-800',
+      completed: 'bg-green-100 text-green-800'
     };
     return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
@@ -209,7 +176,7 @@ const ATSDashboard: React.FC<ATSDashboardProps> = ({ userProfile }) => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#1C4DA1] mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading ATS Dashboard...</p>
+          <p className="mt-4 text-gray-600">Loading Dashboard...</p>
         </div>
       </div>
     );
@@ -222,8 +189,8 @@ const ATSDashboard: React.FC<ATSDashboardProps> = ({ userProfile }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">ATS Dashboard</h1>
-              <p className="text-gray-600">Comprehensive recruitment analytics and management</p>
+              <h1 className="text-2xl font-bold text-gray-900">Interview Dashboard</h1>
+              <p className="text-gray-600">Comprehensive interview analytics and management</p>
             </div>
             <div className="flex items-center gap-4">
               <select
@@ -251,9 +218,9 @@ const ATSDashboard: React.FC<ATSDashboardProps> = ({ userProfile }) => {
             <div className="flex items-center">
               <Users className="text-[#1C4DA1]" size={24} />
               <div className="ml-4">
-                <p className="text-sm text-gray-600">Total Applications</p>
-                <p className="text-2xl font-bold text-gray-900">{analytics?.totalApplications || 0}</p>
-                <p className="text-xs text-green-600">+12% from last period</p>
+                <p className="text-sm text-gray-600">Total Interviews</p>
+                <p className="text-2xl font-bold text-gray-900">{analytics?.totalInterviews || 0}</p>
+                <p className="text-xs text-green-600">All time</p>
               </div>
             </div>
           </div>
@@ -264,7 +231,7 @@ const ATSDashboard: React.FC<ATSDashboardProps> = ({ userProfile }) => {
               <div className="ml-4">
                 <p className="text-sm text-gray-600">Active Jobs</p>
                 <p className="text-2xl font-bold text-gray-900">{analytics?.activeJobs || 0}</p>
-                <p className="text-xs text-blue-600">5 new this week</p>
+                <p className="text-xs text-blue-600">Currently open</p>
               </div>
             </div>
           </div>
@@ -273,86 +240,92 @@ const ATSDashboard: React.FC<ATSDashboardProps> = ({ userProfile }) => {
             <div className="flex items-center">
               <TrendingUp className="text-purple-600" size={24} />
               <div className="ml-4">
-                <p className="text-sm text-gray-600">In Pipeline</p>
-                <p className="text-2xl font-bold text-gray-900">{analytics?.candidatesInPipeline || 0}</p>
-                <p className="text-xs text-purple-600">Across all stages</p>
+                <p className="text-sm text-gray-600">Completed</p>
+                <p className="text-2xl font-bold text-gray-900">{analytics?.completedInterviews || 0}</p>
+                <p className="text-xs text-purple-600">Interviews finished</p>
               </div>
             </div>
           </div>
 
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center">
-              <Clock className="text-orange-600" size={24} />
+              <Target className="text-orange-600" size={24} />
               <div className="ml-4">
-                <p className="text-sm text-gray-600">Avg. Time to Hire</p>
-                <p className="text-2xl font-bold text-gray-900">{analytics?.averageTimeToHire || 0} days</p>
-                <p className="text-xs text-orange-600">-3 days improvement</p>
+                <p className="text-sm text-gray-600">Avg. Score</p>
+                <p className="text-2xl font-bold text-gray-900">{analytics?.averageScore.toFixed(1) || '0.0'}</p>
+                <p className="text-xs text-orange-600">Out of 10</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Conversion Funnel */}
+        {/* Interview Status Overview */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Conversion Funnel</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Interview Status Distribution</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Application → Interview</span>
+                <span className="text-sm text-gray-600">Pending Interviews</span>
                 <div className="flex items-center gap-2">
                   <div className="w-32 bg-gray-200 rounded-full h-2">
                     <div 
-                      className="bg-[#1C4DA1] h-2 rounded-full" 
-                      style={{ width: `${analytics?.conversionRates.applicationToInterview || 0}%` }}
+                      className="bg-yellow-500 h-2 rounded-full" 
+                      style={{ 
+                        width: `${analytics?.totalInterviews ? (analytics.pendingInterviews / analytics.totalInterviews) * 100 : 0}%` 
+                      }}
                     ></div>
                   </div>
-                  <span className="text-sm font-medium">{analytics?.conversionRates.applicationToInterview.toFixed(1) || 0}%</span>
+                  <span className="text-sm font-medium">{analytics?.pendingInterviews || 0}</span>
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Interview → Offer</span>
+                <span className="text-sm text-gray-600">Completed Interviews</span>
                 <div className="flex items-center gap-2">
                   <div className="w-32 bg-gray-200 rounded-full h-2">
                     <div 
-                      className="bg-[#6CBE45] h-2 rounded-full" 
-                      style={{ width: `${analytics?.conversionRates.interviewToOffer || 0}%` }}
+                      className="bg-green-500 h-2 rounded-full" 
+                      style={{ 
+                        width: `${analytics?.totalInterviews ? (analytics.completedInterviews / analytics.totalInterviews) * 100 : 0}%` 
+                      }}
                     ></div>
                   </div>
-                  <span className="text-sm font-medium">{analytics?.conversionRates.interviewToOffer.toFixed(1) || 0}%</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Offer → Hire</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-32 bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-purple-600 h-2 rounded-full" 
-                      style={{ width: `${analytics?.conversionRates.offerToHire || 0}%` }}
-                    ></div>
-                  </div>
-                  <span className="text-sm font-medium">{analytics?.conversionRates.offerToHire.toFixed(1) || 0}%</span>
+                  <span className="text-sm font-medium">{analytics?.completedInterviews || 0}</span>
                 </div>
               </div>
             </div>
           </div>
 
           <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Application Sources</h3>
-            <div className="space-y-3">
-              {analytics?.topSources.map((source, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <span className="text-sm text-gray-700">{source.source}</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-24 bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-[#1C4DA1] h-2 rounded-full" 
-                        style={{ width: `${source.percentage}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-sm font-medium w-12 text-right">{source.count}</span>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Metrics</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Completion Rate</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-24 bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-[#1C4DA1] h-2 rounded-full" 
+                      style={{ 
+                        width: `${analytics?.totalInterviews ? (analytics.completedInterviews / analytics.totalInterviews) * 100 : 0}%` 
+                      }}
+                    ></div>
                   </div>
+                  <span className="text-sm font-medium">
+                    {analytics?.totalInterviews ? ((analytics.completedInterviews / analytics.totalInterviews) * 100).toFixed(1) : 0}%
+                  </span>
                 </div>
-              ))}
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Average Score</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-24 bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-[#6CBE45] h-2 rounded-full" 
+                      style={{ width: `${(analytics?.averageScore || 0) * 10}%` }}
+                    ></div>
+                  </div>
+                  <span className="text-sm font-medium">{analytics?.averageScore.toFixed(1) || 0}/10</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -361,30 +334,30 @@ const ATSDashboard: React.FC<ATSDashboardProps> = ({ userProfile }) => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Recent Applications</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Recent Interviews</h3>
               <button className="text-[#1C4DA1] hover:text-blue-700 text-sm font-medium">
                 View All
               </button>
             </div>
             <div className="space-y-4">
-              {recentApplications.slice(0, 5).map((application) => (
-                <div key={application.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              {recentInterviews.slice(0, 5).map((interview) => (
+                <div key={interview.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900">
-                      {application.candidates?.first_name} {application.candidates?.last_name}
-                    </p>
-                    <p className="text-sm text-gray-600">{application.jobs?.title}</p>
+                    <p className="font-medium text-gray-900">{interview.candidate_name}</p>
+                    <p className="text-sm text-gray-600">{interview.jobs?.title}</p>
                     <p className="text-xs text-gray-500">
-                      {new Date(application.applied_at).toLocaleDateString()}
+                      {new Date(interview.created_at).toLocaleDateString()}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(application.status)}`}>
-                      {application.status.replace('_', ' ')}
+                    <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(interview.status)}`}>
+                      {interview.status.replace('_', ' ')}
                     </span>
-                    <span className={`text-xs font-medium ${getPriorityColor(application.priority)}`}>
-                      {application.priority}
-                    </span>
+                    {interview.overall_score > 0 && (
+                      <span className="text-xs font-medium text-gray-600">
+                        {interview.overall_score}/10
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
