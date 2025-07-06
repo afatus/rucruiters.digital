@@ -48,9 +48,11 @@ Deno.serve(async (req: Request) => {
 
     console.log('Calling get_all_users_admin function...');
 
-    // Use the database function instead of direct view access
+    // Fetch users with tenant information from the view
     const { data: users, error } = await supabase
-      .rpc('get_all_users_admin');
+      .from('tenant_user_roles')
+      .select('*')
+      .order('user_created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching users:', error);
