@@ -319,7 +319,7 @@ const HRDashboard: React.FC = () => {
     );
   }
 
-  if (activeTab === 'users' && userProfile?.role === 'it_admin') {
+  if (activeTab === 'users' && (userProfile?.role === 'it_admin' || userProfile?.role === 'super_admin')) {
     return (
       <UserManagement
         onBack={() => setActiveTab('jobs')}
