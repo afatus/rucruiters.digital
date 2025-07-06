@@ -150,6 +150,8 @@ const HRDashboard: React.FC = () => {
   };
 
   const fetchJobs = async () => {
+    if (!userProfile) return;
+    
     let query = supabase
       .from('jobs')
       .select(`
@@ -160,13 +162,16 @@ const HRDashboard: React.FC = () => {
       .order('created_at', { ascending: false });
 
     // Filter jobs based on user role
-    if (userProfile) {
-      if (userProfile.role === 'hiring_manager') {
-        query = query.eq('hiring_manager_id', userProfile.id);
-      } else if (userProfile.role === 'line_manager') {
-        query = query.eq('line_manager_id', userProfile.id);
+    if (userProfile.role === 'hiring_manager') {
+      query = query.eq('hiring_manager_id', userProfile.id);
+    } else if (userProfile.role === 'line_manager') {
+      query = query.eq('line_manager_id', userProfile.id);
+    } else {
+      // For other roles (recruiter, hr_operations), filter by tenant
+      // Only super_admin and it_admin can see all tenants
+      if (jwtRole !== 'super_admin' && jwtRole !== 'it_admin') {
+        query = query.eq('tenant_id', userProfile.tenant_id);
       }
-      // Recruiters and HR can see all jobs
     }
 
     const { data, error } = await query;
@@ -176,6 +181,8 @@ const HRDashboard: React.FC = () => {
   };
 
   const fetchInterviews = async () => {
+    if (!userProfile) return;
+    
     let query = supabase
       .from('interviews')
       .select(`
@@ -190,13 +197,42 @@ const HRDashboard: React.FC = () => {
       .order('created_at', { ascending: false });
 
     // Filter interviews based on user role
-    if (userProfile) {
-      if (userProfile.role === 'hiring_manager') {
-        query = query.eq('jobs.hiring_manager_id', userProfile.id);
-      } else if (userProfile.role === 'line_manager') {
-        query = query.eq('jobs.line_manager_id', userProfile.id);
+    if (userProfile.role === 'hiring_manager') {
+      // Hiring managers see interviews for jobs they manage
+      const { data: managerJobs } = await supabase
+        .from('jobs')
+        .select('id')
+        .eq('hiring_manager_id', userProfile.id);
+      
+      if (managerJobs && managerJobs.length > 0) {
+        const jobIds = managerJobs.map(job => job.id);
+        query = query.in('job_id', jobIds);
+      } else {
+        // No jobs managed, return empty result
+        setInterviews([]);
+        return;
       }
-      // Recruiters and HR can see all interviews
+    } else if (userProfile.role === 'line_manager') {
+      // Line managers see interviews for jobs they are assigned to
+      const { data: lineManagerJobs } = await supabase
+        .from('jobs')
+        .select('id')
+        .eq('line_manager_id', userProfile.id);
+      
+      if (lineManagerJobs && lineManagerJobs.length > 0) {
+        const jobIds = lineManagerJobs.map(job => job.id);
+        query = query.in('job_id', jobIds);
+      } else {
+        // No jobs assigned, return empty result
+        setInterviews([]);
+        return;
+      }
+    } else {
+      // For other roles (recruiter, hr_operations), filter by tenant
+      // Only super_admin and it_admin can see all tenants
+      if (jwtRole !== 'super_admin' && jwtRole !== 'it_admin') {
+        query = query.eq('tenant_id', userProfile.tenant_id);
+      }
     }
 
     const { data, error } = await query;
