@@ -106,3 +106,36 @@ export interface TenantSettings {
   created_at: string;
   updated_at: string;
 }
+
+// Role and Permission Management Types
+export interface Role {
+  id: string;
+  name: string;
+  description?: string;
+  inherit_order: number;
+  is_system_role: boolean;
+  tenant_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Module {
+  id: string;
+  name: string;
+  description?: string;
+  created_at: string;
+}
+
+export interface Permission {
+  id: string;
+  action: string;
+  description?: string;
+  created_at: string;
+}
+
+export interface RolePermission {
+  role_id: string;
+  module_id: string;
+  permission_id: string;
+  created_at: string;
+}

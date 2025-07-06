@@ -10,13 +10,14 @@ import UserManagement from './UserManagement';
 import ATSDashboard from './ATS/ATSDashboard';
 import CandidateManagement from './ATS/CandidateManagement';
 import TenantManagement from './TenantManagement';
+import RolePermissionManagement from './RolePermissionManagement';
 
 const HRDashboard: React.FC = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const [jwtRole, setJwtRole] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'jobs' | 'candidates' | 'interviews' | 'users' | 'tenants' | 'system'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'jobs' | 'candidates' | 'interviews' | 'users' | 'tenants' | 'roles' | 'system'>('dashboard');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [selectedInterview, setSelectedInterview] = useState<Interview | null>(null);
@@ -335,6 +336,15 @@ const HRDashboard: React.FC = () => {
     );
   }
 
+  if (activeTab === 'roles' && (userProfile?.role === 'it_admin' || userProfile?.role === 'super_admin')) {
+    return (
+      <RolePermissionManagement
+        onBack={() => setActiveTab('dashboard')}
+        userProfile={userProfile}
+      />
+    );
+  }
+
   if (showCreateForm) {
     return (
       <CreateJobForm
@@ -450,6 +460,19 @@ const HRDashboard: React.FC = () => {
                   >
                     <Crown size={20} />
                     Tenant Yönetimi
+                  </button>
+                )}
+                {(userProfile?.role === 'it_admin' || userProfile?.role === 'super_admin') && (
+                  <button
+                    onClick={() => setActiveTab('roles')}
+                    className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
+                      activeTab === 'roles'
+                        ? 'bg-[#1C4DA1] text-white'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Shield size={20} />
+                    Rol ve Yetki Yönetimi
                   </button>
                 )}
                 <button
