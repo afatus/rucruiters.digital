@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, Edit3, Save, X, Trash2, Building, Users, Settings, Globe, Crown, Calendar, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Tenant, TenantSettings } from '../types';
+import TenantSettings from './TenantSettings';
 
 interface TenantManagementProps {
   onBack: () => void;
@@ -29,6 +30,7 @@ const TenantManagement: React.FC<TenantManagementProps> = ({ onBack }) => {
   });
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [selectedTenantForSettings, setSelectedTenantForSettings] = useState<TenantWithSettings | null>(null);
 
   const plans = [
     { value: 'basic', label: 'Basic', color: 'bg-gray-100 text-gray-800', maxUsers: 10, maxJobs: 50 },
@@ -235,6 +237,15 @@ const TenantManagement: React.FC<TenantManagementProps> = ({ onBack }) => {
       .trim();
   };
 
+  if (selectedTenantForSettings) {
+    return (
+      <TenantSettings
+        tenant={selectedTenantForSettings}
+        onBack={() => setSelectedTenantForSettings(null)}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white shadow-sm border-b">
@@ -409,6 +420,7 @@ const TenantManagement: React.FC<TenantManagementProps> = ({ onBack }) => {
                             <Edit3 size={16} />
                           </button>
                           <button
+                            onClick={() => setSelectedTenantForSettings(tenant)}
                             className="text-gray-500 hover:text-gray-700 transition-colors"
                             title="Settings"
                           >
