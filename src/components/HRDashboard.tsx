@@ -74,7 +74,8 @@ const HRDashboard: React.FC = () => {
           {
             id: userId,
             full_name: user?.email || 'User',
-            role: 'recruiter'
+            role: 'recruiter',
+            tenant_id: '00000000-0000-0000-0000-000000000001' // Default tenant ID
           }
         ])
         .select()
@@ -339,6 +340,7 @@ const HRDashboard: React.FC = () => {
       <CreateJobForm
         onCancel={() => setShowCreateForm(false)}
         onJobCreated={handleJobCreated}
+        userProfile={userProfile}
       />
     );
   }
