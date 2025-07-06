@@ -301,7 +301,7 @@ const HRDashboard: React.FC = () => {
     );
   }
 
-  if (activeTab === 'tenants' && jwtRole === 'super_admin') {
+  if (activeTab === 'tenants' && (jwtRole === 'super_admin' || jwtRole === 'it_admin')) {
     return (
       <TenantManagement
         onBack={() => setActiveTab('dashboard')}
@@ -412,7 +412,7 @@ const HRDashboard: React.FC = () => {
                     Kullanıcılar
                   </button>
                 )}
-                {jwtRole === 'super_admin' && (
+                {(jwtRole === 'super_admin' || jwtRole === 'it_admin') && (
                   <button
                     onClick={() => setActiveTab('tenants')}
                     className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
