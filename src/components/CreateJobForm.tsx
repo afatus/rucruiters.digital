@@ -7,6 +7,7 @@ import { Profile } from '../types';
 interface CreateJobFormProps {
   onCancel: () => void;
   onJobCreated: () => void;
+  userProfile: Profile | null;
 }
 
 interface APITestResult {
@@ -15,7 +16,7 @@ interface APITestResult {
   details?: string;
 }
 
-const CreateJobForm: React.FC<CreateJobFormProps> = ({ onCancel, onJobCreated }) => {
+const CreateJobForm: React.FC<CreateJobFormProps> = ({ onCancel, onJobCreated, userProfile }) => {
   const [formData, setFormData] = useState({
     title: '',
     company: '',
@@ -104,6 +105,10 @@ const CreateJobForm: React.FC<CreateJobFormProps> = ({ onCancel, onJobCreated })
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
+      if (!userProfile?.tenant_id) {
+        throw new Error('Kullanıcı tenant bilgisi bulunamadı. Lütfen sistem yöneticisi ile iletişime geçin.');
+      }
+      
       // Create job
       const { data: job, error: jobError } = await supabase
         .from('jobs')
@@ -115,6 +120,7 @@ const CreateJobForm: React.FC<CreateJobFormProps> = ({ onCancel, onJobCreated })
             created_by: user?.id || 'anonymous',
             hiring_manager_id: formData.hiring_manager_id || null,
             line_manager_id: formData.line_manager_id || null
+            tenant_id: userProfile.tenant_id
           }
         ])
         .select()
@@ -182,6 +188,7 @@ const CreateJobForm: React.FC<CreateJobFormProps> = ({ onCancel, onJobCreated })
           job_id: job.id,
           question,
           order_index: index
+          tenant_id: userProfile.tenant_id
         }));
 
         const { error: questionsError } = await supabase
@@ -222,6 +229,7 @@ const CreateJobForm: React.FC<CreateJobFormProps> = ({ onCancel, onJobCreated })
           job_id: job.id,
           question,
           order_index: index
+          tenant_id: userProfile.tenant_id
         }));
 
         const { error: fallbackError } = await supabase
@@ -235,12 +243,33 @@ const CreateJobForm: React.FC<CreateJobFormProps> = ({ onCancel, onJobCreated })
       }
     } catch (error) {
       console.error('Error creating job:', error);
-      setError('İş ilanı oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.');
+      setError(error instanceof Error ? error.message : 'İş ilanı oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.');
     } finally {
       setLoading(false);
       setGeneratingQuestions(false);
     }
   };
+
+  // Kullanıcı profili yoksa form gösterme
+  if (!userProfile) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="text-red-600 mx-auto mb-4" size={48} />
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Erişim Hatası</h1>
+          <p className="text-gray-600 mb-6">
+            Kullanıcı profili bulunamadı. Lütfen tekrar giriş yapın.
+          </p>
+          <button
+            onClick={onCancel}
+            className="bg-[#1C4DA1] text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Geri Dön
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -255,7 +284,9 @@ const CreateJobForm: React.FC<CreateJobFormProps> = ({ onCancel, onJobCreated })
             </button>
             <div className="flex-1">
               <h1 className="text-2xl font-bold text-gray-900">İş İlanı Oluştur</h1>
-              <p className="text-gray-600">AI otomatik olarak mülakat soruları üretecek</p>
+              <p className="text-gray-600">
+                AI otomatik olarak mülakat soruları üretecek • Tenant: {userProfile.tenant_id}
+              </p>
             </div>
             <button
               onClick={() => setShowApiTest(!showApiTest)}

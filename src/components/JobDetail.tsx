@@ -244,6 +244,10 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, onBack, onInterviewsUpdate }
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
+      if (!job.tenant_id) {
+        throw new Error('İş ilanı tenant bilgisi bulunamadı.');
+      }
+      
     const interviewLink = uuidv4();
     const interviewUrl = `${window.location.origin}/interview/${interviewLink}`;
     
@@ -256,7 +260,8 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, onBack, onInterviewsUpdate }
           candidate_email: inviteData.candidateEmail,
           interview_link: interviewLink,
           status: 'pending',
-          link_sent_count: 1
+          link_sent_count: 1,
+          tenant_id: job.tenant_id
         }
       ])
       .select()
@@ -271,7 +276,8 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, onBack, onInterviewsUpdate }
           {
             interview_id: data.id,
             sent_by: user?.id || null,
-            sent_at: new Date().toISOString()
+            sent_at: new Date().toISOString(),
+            tenant_id: job.tenant_id
           }
         ]);
 
