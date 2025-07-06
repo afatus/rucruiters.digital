@@ -46,7 +46,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Validate role against allowed values
-    const allowedRoles = ['recruiter', 'hiring_manager', 'line_manager', 'candidate', 'hr_operations', 'it_admin'];
+    const allowedRoles = ['recruiter', 'hiring_manager', 'line_manager', 'candidate', 'hr_operations', 'it_admin', 'super_admin'];
     if (role && !allowedRoles.includes(role)) {
       return new Response(
         JSON.stringify({ 
