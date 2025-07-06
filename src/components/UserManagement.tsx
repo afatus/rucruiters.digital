@@ -56,15 +56,36 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('*')
-        .order('user_created_at', { ascending: false });
+      console.log('Fetching users via Edge Function...');
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-all-users`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          }
+        }
+      );
 
-      if (error) throw error;
-      setUsers(data || []);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch users');
+      }
+
+      console.log(`Successfully fetched ${result.users.length} users`);
+      setUsers(result.users || []);
     } catch (error) {
       console.error('Error fetching users:', error);
+      // Set empty array on error to prevent UI issues
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -173,7 +194,12 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
       await fetchUsers();
     } catch (error: any) {
       console.error('Error creating user:', error);
-      alert(`Kullanıcı oluşturulurken hata: ${error.message}`);
+      // Handle specific error cases
+      if (error.message && error.message.includes('already been registered')) {
+        alert('Bu e-posta adresi zaten kayıtlı. Lütfen farklı bir e-posta adresi kullanın.');
+      } else {
+        alert(`Kullanıcı oluşturulurken hata: ${error.message}`);
+      }
     } finally {
       setCreating(false);
     }
