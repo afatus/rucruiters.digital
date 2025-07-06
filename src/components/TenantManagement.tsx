@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, Edit3, Save, X, Trash2, Building, Users, Settings, Globe, Crown, Calendar, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { Tenant, TenantSettings } from '../types';
+import { Tenant, TenantSettings as TenantSettingsInterface } from '../types';
 import TenantSettings from './TenantSettings';
 
 interface TenantManagementProps {
@@ -9,7 +9,7 @@ interface TenantManagementProps {
 }
 
 interface TenantWithSettings extends Tenant {
-  settings?: TenantSettings;
+  settings?: TenantSettingsInterface;
   userCount?: number;
   jobCount?: number;
 }
