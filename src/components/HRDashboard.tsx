@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Users, FileText, BarChart3, Eye, LogOut, Settings, UserCog } from 'lucide-react';
+import { Plus, Users, FileText, BarChart3, Eye, LogOut, Settings, UserCog, Briefcase, TrendingUp, Calendar, Bell } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Job, Interview, Profile } from '../types';
 import CreateJobForm from './CreateJobForm';
@@ -7,12 +7,14 @@ import JobDetail from './JobDetail';
 import InterviewResults from './InterviewResults';
 import SupabaseDebug from './SupabaseDebug';
 import UserManagement from './UserManagement';
+import ATSDashboard from './ATS/ATSDashboard';
+import CandidateManagement from './ATS/CandidateManagement';
 
 const HRDashboard: React.FC = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
-  const [activeTab, setActiveTab] = useState<'jobs' | 'interviews' | 'users' | 'system'>('jobs');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'jobs' | 'candidates' | 'interviews' | 'users' | 'system'>('dashboard');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [selectedInterview, setSelectedInterview] = useState<Interview | null>(null);
@@ -336,6 +338,17 @@ const HRDashboard: React.FC = () => {
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Menü</h2>
               <nav className="space-y-2">
                 <button
+                  onClick={() => setActiveTab('dashboard')}
+                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
+                    activeTab === 'dashboard'
+                      ? 'bg-[#1C4DA1] text-white'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <BarChart3 size={20} />
+                  ATS Dashboard
+                </button>
+                <button
                   onClick={() => setActiveTab('jobs')}
                   className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
                     activeTab === 'jobs'
@@ -347,6 +360,17 @@ const HRDashboard: React.FC = () => {
                   Son İş İlanları
                 </button>
                 <button
+                  onClick={() => setActiveTab('candidates')}
+                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
+                    activeTab === 'candidates'
+                      ? 'bg-[#1C4DA1] text-white'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <Users size={20} />
+                  Aday Yönetimi
+                </button>
+                <button
                   onClick={() => setActiveTab('interviews')}
                   className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
                     activeTab === 'interviews'
@@ -354,7 +378,7 @@ const HRDashboard: React.FC = () => {
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                  <Users size={20} />
+                  <Calendar size={20} />
                   Son Mülakatlar
                 </button>
                 {userProfile?.role === 'it_admin' && (
@@ -421,6 +445,14 @@ const HRDashboard: React.FC = () => {
             </div>
 
             {/* Content based on active tab */}
+            {activeTab === 'dashboard' && (
+              <ATSDashboard userProfile={userProfile} />
+            )}
+
+            {activeTab === 'candidates' && (
+              <CandidateManagement userProfile={userProfile} />
+            )}
+
             {activeTab === 'jobs' && (
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex justify-between items-center mb-6">
