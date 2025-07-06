@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { X, Save, User, Mail, Shield, Building, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Tenant } from '../types';
 
@@ -34,52 +35,63 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ user, tenants, onSave, on
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
+  const isEditing = !!user;
+
+  const roles = [
+    { value: 'recruiter', label: 'Recruiter' },
+    { value: 'hiring_manager', label: 'Hiring Manager' },
+    { value: 'line_manager', label: 'Line Manager' },
+    { value: 'hr_operations', label: 'HR Operations' },
+    { value: 'it_admin', label: 'IT Admin' },
+    { value: 'candidate', label: 'Candidate' },
+    { value: 'super_admin', label: 'Super Admin' }
+  ];
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        email: user.email,
+        password: '',
+        full_name: user.full_name || '',
+        role: user.role,
+        department: user.department || '',
+        tenant_id: user.tenant_id || ''
+      });
+    }
+  }, [user]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
   const handleSubmit = async () => {
     setLoading(true);
-    setErrors({});
-
     try {
-      const { data: authUser, error: signUpError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password
+      const response = await fetch('/api/create-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
       });
 
-      if (signUpError || !authUser?.user) {
-        throw new Error('Auth user creation failed');
-      }
-
-      const { error: insertError } = await supabase.from('profiles').insert([
-        {
-          id: authUser.user.id,
-          email: formData.email,
-          full_name: formData.full_name,
-          role: formData.role,
-          department: formData.department || null,
-          tenant_id: formData.tenant_id,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      ]);
-
-      if (insertError) {
-        throw insertError;
-      }
+      if (!response.ok) throw new Error('Kullanıcı oluşturulamadı');
 
       onSave();
-    } catch (error: any) {
-      console.error('Error saving user:', error);
-      setErrors({ general: 'Kullanıcı oluşturulurken hata oluştu.' });
+    } catch (err) {
+      console.error('Error creating user:', err);
+      setErrors({ general: 'Kullanıcı oluşturulurken bir hata oluştu.' });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div>
-      {/* Form bileşenleri buraya gelecek */}
+    <div className="modal">
+      {/* Form alanları buraya gelecek */}
       <button onClick={handleSubmit} disabled={loading}>
-        Kaydet
+        {loading ? <Loader2 className="animate-spin" /> : 'Kaydet'}
       </button>
+      <button onClick={onCancel}>İptal</button>
     </div>
   );
 };
