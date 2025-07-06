@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Profile, Tenant } from '../types';
+import UserFormModal from './UserFormModal';
 
 interface UserManagementProps {
   onBack: () => void;
@@ -20,6 +21,7 @@ interface UserWithAuth {
   department: string | null;
   tenant_id: string | null;
   tenant_name: string | null;
+  tenant_slug: string | null;
   profile_created_at: string;
   user_created_at: string;
   last_sign_in_at: string | null;
@@ -61,6 +63,10 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
   const [showUserDetail, setShowUserDetail] = useState<UserWithAuth | null>(null);
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showUserFormModal, setShowUserFormModal] = useState(false);
+  const [selectedUserForEdit, setSelectedUserForEdit] = useState<UserWithAuth | null>(null);
+  const [roleFilter, setRoleFilter] = useState('');
+  const [tenantFilter, setTenantFilter] = useState('');
   
   // Form states
   const [editForm, setEditForm] = useState<{
@@ -150,7 +156,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
 
   const fetchUsers = async () => {
     try {
-      console.log('Fetching users via Edge Function...');
+      console.log('Fetching users with tenant information...');
       
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-all-users`,
@@ -247,6 +253,27 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditUser = (user: UserWithAuth) => {
+    setSelectedUserForEdit(user);
+    setShowUserFormModal(true);
+  };
+
+  const handleCreateUser = () => {
+    setSelectedUserForEdit(null);
+    setShowUserFormModal(true);
+  };
+
+  const handleModalSave = async () => {
+    setShowUserFormModal(false);
+    setSelectedUserForEdit(null);
+    await fetchUsers();
+  };
+
+  const handleModalCancel = () => {
+    setShowUserFormModal(false);
+    setSelectedUserForEdit(null);
   };
 
   const startEditing = (user: UserWithAuth) => {
@@ -543,11 +570,24 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
     return statusOptions.find(s => s.value === 'active');
   };
 
+  // Filter users based on search and filters
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = !searchTerm || 
+      user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.department?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesRole = !roleFilter || user.role === roleFilter;
+    const matchesTenant = !tenantFilter || user.tenant_id === tenantFilter;
+    
+    return matchesSearch && matchesRole && matchesTenant;
+  });
+
   // Pagination
   const indexOfLastUser = currentPage * usersPerPage;
   const indexOfFirstUser = indexOfLastUser - usersPerPage;
-  const currentUsers = users.slice(indexOfFirstUser, indexOfLastUser);
-  const totalPages = Math.ceil(users.length / usersPerPage);
+  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
@@ -582,7 +622,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                 İçe Aktar
               </button>
               <button
-                onClick={() => setShowCreateForm(true)}
+                onClick={handleCreateUser}
                 className="bg-[#6CBE45] text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2"
               >
                 <Plus size={20} />
@@ -594,6 +634,52 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Search and Filters */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="md:col-span-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <input
+                  type="text"
+                  placeholder="Kullanıcı ara (ad, e-posta, departman)..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1C4DA1] focus:border-transparent"
+                />
+              </div>
+            </div>
+            <div>
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1C4DA1] focus:border-transparent"
+              >
+                <option value="">Tüm Roller</option>
+                {roles.map(role => (
+                  <option key={role.value} value={role.value}>
+                    {role.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <select
+                value={tenantFilter}
+                onChange={(e) => setTenantFilter(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1C4DA1] focus:border-transparent"
+              >
+                <option value="">Tüm Organizasyonlar</option>
+                {tenants.map(tenant => (
+                  <option key={tenant.id} value={tenant.id}>
+                    {tenant.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
         {/* Enhanced Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow">
@@ -758,8 +844,20 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold text-gray-900">
-                Kullanıcılar ({users.length})
+                Kullanıcılar ({filteredUsers.length})
               </h2>
+              {searchTerm || roleFilter || tenantFilter ? (
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setRoleFilter('');
+                    setTenantFilter('');
+                  }}
+                  className="text-sm text-gray-600 hover:text-gray-800 transition-colors"
+                >
+                  Filtreleri Temizle
+                </button>
+              ) : null}
               <div className="flex items-center gap-2">
                 <select
                   value={sortBy}
@@ -814,6 +912,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                     Rol & Tenant
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Departman & Organizasyon
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Durum
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -842,100 +943,51 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                       />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {editingUser === user.id ? (
-                        <div className="space-y-2">
-                          <input
-                            type="text"
-                            value={editForm.full_name}
-                            onChange={(e) => setEditForm(prev => ({ ...prev, full_name: e.target.value }))}
-                            className="w-full px-3 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#1C4DA1] focus:border-transparent"
-                            placeholder="Ad Soyad"
-                          />
-                          <input
-                            type="text"
-                            value={editForm.phone}
-                            onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
-                            className="w-full px-3 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#1C4DA1] focus:border-transparent"
-                            placeholder="Telefon"
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10">
-                            <div className="h-10 w-10 rounded-full bg-[#1C4DA1] flex items-center justify-center">
-                              <span className="text-sm font-medium text-white">
-                                {(user.full_name || user.email)[0].toUpperCase()}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
-                              {user.full_name || 'İsim belirtilmemiş'}
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <Mail size={12} />
-                              {user.email}
-                            </div>
-                            {user.phone && (
-                              <div className="flex items-center gap-2 text-sm text-gray-500">
-                                <Phone size={12} />
-                                {user.phone}
-                              </div>
-                            )}
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10">
+                          <div className="h-10 w-10 rounded-full bg-[#1C4DA1] flex items-center justify-center">
+                            <span className="text-sm font-medium text-white">
+                              {user.full_name ? user.full_name.split(' ').map(n => n[0]).join('').slice(0, 2) : user.email[0].toUpperCase()}
+                            </span>
                           </div>
                         </div>
-                      )}
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {user.full_name || 'İsim belirtilmemiş'}
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Mail size={14} />
+                            {user.email}
+                          </div>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {editingUser === user.id ? (
-                        <div className="space-y-2">
-                          <select
-                            value={editForm.role}
-                            onChange={(e) => setEditForm(prev => ({ ...prev, role: e.target.value }))}
-                            className="w-full px-3 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#1C4DA1] focus:border-transparent"
-                          >
-                            {roles.map(role => (
-                              <option key={role.value} value={role.value}>
-                                {role.label}
-                              </option>
-                            ))}
-                          </select>
-                          <select
-                            value={editForm.tenant_id}
-                            onChange={(e) => setEditForm(prev => ({ ...prev, tenant_id: e.target.value }))}
-                            className="w-full px-3 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#1C4DA1] focus:border-transparent"
-                          >
-                            <option value="">Tenant Seçin...</option>
-                            {tenants.map(tenant => (
-                              <option key={tenant.id} value={tenant.id}>
-                                {tenant.name}
-                              </option>
-                            ))}
-                          </select>
-                          <input
-                            type="text"
-                            value={editForm.department}
-                            onChange={(e) => setEditForm(prev => ({ ...prev, department: e.target.value }))}
-                            className="w-full px-3 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#1C4DA1] focus:border-transparent"
-                            placeholder="Departman"
-                          />
+                      <div className="space-y-1">
+                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getRoleInfo(user.role).color}`}>
+                          {getRoleInfo(user.role).label}
+                        </span>
+                        {user.tenant_name && (
+                          <div className="flex items-center gap-1 text-xs text-gray-600">
+                            <Building size={12} />
+                            {user.tenant_name}
+                          </div>
+                        )}
+                        {user.department && (
+                          <div className="text-xs text-gray-500">{user.department}</div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm text-gray-900">
+                          {user.department || '-'}
                         </div>
-                      ) : (
-                        <div className="space-y-1">
-                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getRoleInfo(user.role).color}`}>
-                            {getRoleInfo(user.role).label}
-                          </span>
-                          {user.tenant_name && (
-                            <div className="flex items-center gap-1 text-xs text-gray-600">
-                              <Building size={12} />
-                              {user.tenant_name}
-                            </div>
-                          )}
-                          {user.department && (
-                            <div className="text-xs text-gray-500">{user.department}</div>
-                          )}
+                        <div className="text-sm text-gray-500 flex items-center gap-1">
+                          <Building size={12} />
+                          {user.tenant_name || 'Organizasyon belirtilmemiş'}
                         </div>
-                      )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="space-y-1">
@@ -967,47 +1019,29 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      {editingUser === user.id ? (
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => saveUser(user.id)}
-                            disabled={updating}
-                            className="text-[#6CBE45] hover:text-green-700 transition-colors disabled:opacity-50"
-                          >
-                            <Save size={16} />
-                          </button>
-                          <button
-                            onClick={cancelEditing}
-                            className="text-gray-500 hover:text-gray-700 transition-colors"
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => setShowUserDetail(user)}
-                            className="text-[#1C4DA1] hover:text-blue-700 transition-colors"
-                            title="Detayları Görüntüle"
-                          >
-                            <Eye size={16} />
-                          </button>
-                          <button
-                            onClick={() => startEditing(user)}
-                            className="text-[#1C4DA1] hover:text-blue-700 transition-colors"
-                            title="Düzenle"
-                          >
-                            <Edit3 size={16} />
-                          </button>
-                          <button
-                            onClick={() => deleteUser(user.id, user.email)}
-                            className="text-red-600 hover:text-red-800 transition-colors"
-                            title="Sil"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      )}
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => setShowUserDetail(user)}
+                          className="text-[#1C4DA1] hover:text-blue-700 transition-colors"
+                          title="Detayları Görüntüle"
+                        >
+                          <Eye size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleEditUser(user)}
+                          className="text-[#1C4DA1] hover:text-blue-700 transition-colors"
+                          title="Düzenle"
+                        >
+                          <Edit3 size={16} />
+                        </button>
+                        <button
+                          onClick={() => deleteUser(user.id, user.email)}
+                          className="text-red-600 hover:text-red-800 transition-colors"
+                          title="Sil"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -1020,7 +1054,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
             <div className="px-6 py-4 border-t border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-700">
-                  Gösterilen: {indexOfFirstUser + 1}-{Math.min(indexOfLastUser, users.length)} / {users.length}
+                  Gösterilen: {indexOfFirstUser + 1}-{Math.min(indexOfLastUser, filteredUsers.length)} / {filteredUsers.length}
                 </div>
                 <div className="flex gap-2">
                   <button
@@ -1058,11 +1092,12 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
             </div>
           )}
 
-          {users.length === 0 && !loading && (
+          {filteredUsers.length === 0 && !loading && (
             <div className="text-center py-12">
               <Users size={48} className="mx-auto text-gray-300 mb-4" />
-              <p className="text-gray-500">Kullanıcı bulunamadı.</p>
-              <p className="text-sm text-gray-400">Arama kriterlerinizi değiştirmeyi deneyin.</p>
+              <p className="text-gray-500">
+                {users.length === 0 ? 'Henüz kullanıcı bulunmuyor.' : 'Arama kriterlerine uygun kullanıcı bulunamadı.'}
+              </p>
             </div>
           )}
         </div>
@@ -1578,6 +1613,16 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* User Form Modal */}
+      {showUserFormModal && (
+        <UserFormModal
+          user={selectedUserForEdit}
+          tenants={tenants}
+          onSave={handleModalSave}
+          onCancel={handleModalCancel}
+        />
       )}
     </div>
   );
