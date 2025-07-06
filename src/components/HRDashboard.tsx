@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Users, FileText, BarChart3, Eye, LogOut, Settings, UserCog, Briefcase, TrendingUp, Calendar, Bell } from 'lucide-react';
+import { Plus, Users, FileText, BarChart3, Eye, LogOut, Settings, UserCog, Briefcase, TrendingUp, Calendar, Bell, Crown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Job, Interview, Profile } from '../types';
 import CreateJobForm from './CreateJobForm';
@@ -9,12 +9,14 @@ import SupabaseDebug from './SupabaseDebug';
 import UserManagement from './UserManagement';
 import ATSDashboard from './ATS/ATSDashboard';
 import CandidateManagement from './ATS/CandidateManagement';
+import TenantManagement from './TenantManagement';
 
 const HRDashboard: React.FC = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'jobs' | 'candidates' | 'interviews' | 'users' | 'system'>('dashboard');
+  const [jwtRole, setJwtRole] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'jobs' | 'candidates' | 'interviews' | 'users' | 'tenants' | 'system'>('dashboard');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [selectedInterview, setSelectedInterview] = useState<Interview | null>(null);
@@ -34,6 +36,9 @@ const HRDashboard: React.FC = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       setUser(user);
+      // Extract JWT role from user metadata
+      const role = user.user_metadata?.role || null;
+      setJwtRole(role);
       await fetchUserProfile(user.id);
       setShowAuth(false);
       fetchJobs();
@@ -88,6 +93,8 @@ const HRDashboard: React.FC = () => {
         if (error) throw error;
         if (data.user) {
           setUser(data.user);
+          const role = data.user.user_metadata?.role || null;
+          setJwtRole(role);
           await fetchUserProfile(data.user.id);
           setShowAuth(false);
           fetchJobs();
@@ -101,6 +108,8 @@ const HRDashboard: React.FC = () => {
         if (error) throw error;
         if (data.user) {
           setUser(data.user);
+          const role = data.user.user_metadata?.role || null;
+          setJwtRole(role);
           await fetchUserProfile(data.user.id);
           setShowAuth(false);
           fetchJobs();
@@ -118,6 +127,7 @@ const HRDashboard: React.FC = () => {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    setJwtRole(null);
     setUserProfile(null);
     setShowAuth(true);
     setJobs([]);
@@ -291,6 +301,14 @@ const HRDashboard: React.FC = () => {
     );
   }
 
+  if (activeTab === 'tenants' && jwtRole === 'super_admin') {
+    return (
+      <TenantManagement
+        onBack={() => setActiveTab('dashboard')}
+      />
+    );
+  }
+
   if (showCreateForm) {
     return (
       <CreateJobForm
@@ -392,6 +410,19 @@ const HRDashboard: React.FC = () => {
                   >
                     <UserCog size={20} />
                     Kullanıcılar
+                  </button>
+                )}
+                {jwtRole === 'super_admin' && (
+                  <button
+                    onClick={() => setActiveTab('tenants')}
+                    className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
+                      activeTab === 'tenants'
+                        ? 'bg-[#1C4DA1] text-white'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Crown size={20} />
+                    Tenant Yönetimi
                   </button>
                 )}
                 <button
