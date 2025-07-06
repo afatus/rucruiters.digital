@@ -150,12 +150,20 @@ const RolePermissionManagement: React.FC<RolePermissionManagementProps> = ({ onB
     setSaving(true);
 
     try {
+      // Ensure inherit_order is a valid integer
+      const inheritOrder = parseInt(newRoleData.inherit_order.toString()) || 0;
+      
+      // Validate the data before sending
+      if (!newRoleData.name.trim()) {
+        throw new Error('Rol adı gereklidir');
+      }
+      
       const { data, error } = await supabase
         .from('roles')
         .insert([{
           name: newRoleData.name,
           description: newRoleData.description,
-          inherit_order: newRoleData.inherit_order,
+          inherit_order: inheritOrder,
           is_system_role: false,
           tenant_id: userProfile?.tenant_id
         }])
@@ -169,7 +177,8 @@ const RolePermissionManagement: React.FC<RolePermissionManagementProps> = ({ onB
       setNewRoleData({ name: '', description: '', inherit_order: 0 });
     } catch (error: any) {
       console.error('Error creating role:', error);
-      alert(`Rol oluşturulurken hata: ${error.message}`);
+      const errorMessage = error.message || 'Bilinmeyen hata oluştu';
+      alert(`Rol oluşturulurken hata: ${errorMessage}`);
     } finally {
       setSaving(false);
     }
@@ -177,6 +186,11 @@ const RolePermissionManagement: React.FC<RolePermissionManagementProps> = ({ onB
 
   const handleUpdateRole = async (role: Role, updates: Partial<Role>) => {
     try {
+      // Ensure inherit_order is a valid integer if it's being updated
+      if (updates.inherit_order !== undefined) {
+        updates.inherit_order = parseInt(updates.inherit_order.toString()) || 0;
+      }
+      
       const { error } = await supabase
         .from('roles')
         .update(updates)
@@ -188,7 +202,8 @@ const RolePermissionManagement: React.FC<RolePermissionManagementProps> = ({ onB
       setEditingRole(null);
     } catch (error: any) {
       console.error('Error updating role:', error);
-      alert(`Rol güncellenirken hata: ${error.message}`);
+      const errorMessage = error.message || 'Bilinmeyen hata oluştu';
+      alert(`Rol güncellenirken hata: ${errorMessage}`);
     }
   };
 
@@ -497,9 +512,10 @@ const RolePermissionManagement: React.FC<RolePermissionManagementProps> = ({ onB
                 <input
                   type="number"
                   value={newRoleData.inherit_order}
-                  onChange={(e) => setNewRoleData(prev => ({ ...prev, inherit_order: parseInt(e.target.value) }))}
+                  onChange={(e) => setNewRoleData(prev => ({ ...prev, inherit_order: parseInt(e.target.value) || 0 }))}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1C4DA1] focus:border-transparent"
                   min="0"
+                  step="1"
                   required
                 />
               </div>
@@ -582,6 +598,7 @@ const RolePermissionManagement: React.FC<RolePermissionManagementProps> = ({ onB
                   defaultValue={editingRole.inherit_order}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1C4DA1] focus:border-transparent"
                   min="0"
+                  step="1"
                   required
                 />
               </div>
