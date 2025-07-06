@@ -14,7 +14,7 @@ export interface Job {
 export interface Profile {
   id: string;
   full_name: string | null;
-  role: 'recruiter' | 'hiring_manager' | 'line_manager' | 'candidate' | 'hr_operations' | 'it_admin';
+  role: 'recruiter' | 'hiring_manager' | 'line_manager' | 'candidate' | 'hr_operations' | 'it_admin' | 'super_admin';
   department: string | null;
   created_at: string;
   updated_at: string;

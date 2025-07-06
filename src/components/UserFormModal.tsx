@@ -43,7 +43,8 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ user, tenants, onSave, on
     { value: 'line_manager', label: 'Line Manager' },
     { value: 'hr_operations', label: 'HR Operations' },
     { value: 'it_admin', label: 'IT Admin' },
-    { value: 'candidate', label: 'Candidate' }
+    { value: 'candidate', label: 'Candidate' },
+    { value: 'super_admin', label: 'Super Admin' }
   ];
 
   useEffect(() => {

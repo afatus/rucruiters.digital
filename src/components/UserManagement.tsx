@@ -38,7 +38,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
     { value: 'line_manager', label: 'Line Manager', color: 'bg-purple-100 text-purple-800' },
     { value: 'hr_operations', label: 'HR Operations', color: 'bg-orange-100 text-orange-800' },
     { value: 'it_admin', label: 'IT Admin', color: 'bg-red-100 text-red-800' },
-    { value: 'candidate', label: 'Candidate', color: 'bg-gray-100 text-gray-800' }
+    { value: 'candidate', label: 'Candidate', color: 'bg-gray-100 text-gray-800' },
+    { value: 'super_admin', label: 'Super Admin', color: 'bg-yellow-100 text-yellow-800' }
   ];
 
   useEffect(() => {
