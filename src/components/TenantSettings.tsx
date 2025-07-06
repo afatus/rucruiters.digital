@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Save, Upload, Palette, Mail, Key, Settings as SettingsIcon, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { Tenant, TenantSettings } from '../types';
+import { Tenant } from '../types';
+import type { TenantSettings as TenantSettingsType } from '../types';
 
 interface TenantSettingsProps {
   tenant: Tenant;
@@ -9,7 +10,7 @@ interface TenantSettingsProps {
 }
 
 const TenantSettings: React.FC<TenantSettingsProps> = ({ tenant, onBack }) => {
-  const [settings, setSettings] = useState<TenantSettings | null>(null);
+  const [settings, setSettings] = useState<TenantSettingsType | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'branding' | 'email' | 'api' | 'features'>('branding');
