@@ -21,6 +21,24 @@ Deno.serve(async (req: Request) => {
     // Initialize Supabase client with service role key for admin operations
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing required environment variables');
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: 'Server configuration error' 
+        }),
+        {
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
@@ -28,13 +46,11 @@ Deno.serve(async (req: Request) => {
       }
     });
 
-    console.log('Fetching all users with profiles...');
+    console.log('Calling get_all_users_admin function...');
 
-    // Fetch users from auth.users and join with profiles
+    // Use the database function instead of direct view access
     const { data: users, error } = await supabase
-      .from('user_roles')
-      .select('*')
-      .order('user_created_at', { ascending: false });
+      .rpc('get_all_users_admin');
 
     if (error) {
       console.error('Error fetching users:', error);
