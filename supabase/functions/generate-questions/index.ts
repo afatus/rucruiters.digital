@@ -1,6 +1,7 @@
 @@ .. @@
          questions = [
            // Technical questions (4) - First 2 shown initially (positions 0-1)
+         ]
 -          "Bu pozisyon için sahip olduğunuz teknik beceriler ve deneyimler nelerdir?",
 -          "Kullandığınız teknolojiler ve araçlar konusunda detay verebilir misiniz?",
 +          `${jobTitle} pozisyonu için sahip olduğunuz teknik beceriler ve deneyimler nelerdir?`,
