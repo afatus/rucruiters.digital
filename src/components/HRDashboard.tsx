@@ -183,6 +183,13 @@ const HRDashboard: React.FC = () => {
   const fetchInterviews = async () => {
     if (!userProfile) return;
     
+    console.log('Fetching interviews for user:', {
+      userId: user?.id,
+      userRole: userProfile.role,
+      jwtRole: jwtRole,
+      tenantId: userProfile.tenant_id
+    });
+    
     let query = supabase
       .from('interviews')
       .select(`
@@ -196,46 +203,13 @@ const HRDashboard: React.FC = () => {
       `)
       .order('created_at', { ascending: false });
 
-    // Filter interviews based on user role
-    if (userProfile.role === 'hiring_manager') {
-      // Hiring managers see interviews for jobs they manage
-      const { data: managerJobs } = await supabase
-        .from('jobs')
-        .select('id')
-        .eq('hiring_manager_id', userProfile.id);
-      
-      if (managerJobs && managerJobs.length > 0) {
-        const jobIds = managerJobs.map(job => job.id);
-        query = query.in('job_id', jobIds);
-      } else {
-        // No jobs managed, return empty result
-        setInterviews([]);
-        return;
-      }
-    } else if (userProfile.role === 'line_manager') {
-      // Line managers see interviews for jobs they are assigned to
-      const { data: lineManagerJobs } = await supabase
-        .from('jobs')
-        .select('id')
-        .eq('line_manager_id', userProfile.id);
-      
-      if (lineManagerJobs && lineManagerJobs.length > 0) {
-        const jobIds = lineManagerJobs.map(job => job.id);
-        query = query.in('job_id', jobIds);
-      } else {
-        // No jobs assigned, return empty result
-        setInterviews([]);
-        return;
-      }
-    } else {
-      // For other roles (recruiter, hr_operations), filter by tenant
-      // Only super_admin and it_admin can see all tenants
-      if (jwtRole !== 'super_admin' && jwtRole !== 'it_admin') {
-        query = query.eq('tenant_id', userProfile.tenant_id);
-      }
-    }
+    // it_admin ve super_admin tüm mülakatları görebilir
+    // Diğer roller için RLS politikaları otomatik olarak filtreleme yapacak
+    console.log('JWT Role:', jwtRole, 'User Role:', userProfile.role);
 
     const { data, error } = await query;
+    
+    console.log('Interviews query result:', { data: data?.length, error });
     
     if (data) setInterviews(data);
     if (error) console.error('Error fetching interviews:', error);
