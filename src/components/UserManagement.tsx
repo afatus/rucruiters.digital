@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Users, Edit3, Save, X, Plus, Trash2, Shield, Mail, Calendar, Building } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { Profile } from '../types';
+import { Profile, Tenant } from '../types';
 
 interface UserManagementProps {
   onBack: () => void;
@@ -19,6 +19,7 @@ interface UserWithAuth {
 
 const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
   const [users, setUsers] = useState<UserWithAuth[]>([]);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<{
@@ -36,7 +37,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
     password: '',
     full_name: '',
     role: 'recruiter',
-    department: ''
+    department: '',
+    tenant_id: ''
   });
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -52,7 +54,23 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
 
   useEffect(() => {
     fetchUsers();
+    fetchTenants();
   }, []);
+
+  const fetchTenants = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tenants')
+        .select('*')
+        .eq('status', 'active')
+        .order('name');
+      
+      if (error) throw error;
+      setTenants(data || []);
+    } catch (error) {
+      console.error('Error fetching tenants:', error);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -164,7 +182,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
             password: createForm.password,
             fullName: createForm.full_name,
             role: createForm.role,
-            department: createForm.department
+            department: createForm.department,
+            tenantId: createForm.tenant_id
           })
         }
       );
@@ -188,7 +207,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
         password: '',
         full_name: '',
         role: 'recruiter',
-        department: ''
+        department: '',
+        tenant_id: ''
       });
       setShowCreateForm(false);
       await fetchUsers();
@@ -503,6 +523,24 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                   {roles.map(role => (
                     <option key={role.value} value={role.value}>
                       {role.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tenant
+                </label>
+                <select
+                  value={createForm.tenant_id}
+                  onChange={(e) => setCreateForm(prev => ({ ...prev, tenant_id: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1C4DA1] focus:border-transparent"
+                  required
+                >
+                  <option value="">Select Tenant...</option>
+                  {tenants.map(tenant => (
+                    <option key={tenant.id} value={tenant.id}>
+                      {tenant.name}
                     </option>
                   ))}
                 </select>

@@ -10,6 +10,7 @@ interface CreateUserRequest {
   fullName?: string;
   role?: string;
   department?: string;
+  tenantId?: string;
 }
 
 // Import Supabase client
@@ -26,7 +27,7 @@ Deno.serve(async (req: Request) => {
   try {
     console.log('=== Create User Admin Function Started ===');
     
-    const { email, password, fullName, role = 'recruiter', department }: CreateUserRequest = await req.json();
+    const { email, password, fullName, role = 'recruiter', department, tenantId }: CreateUserRequest = await req.json();
     
     if (!email || !password) {
       return new Response(
@@ -54,7 +55,7 @@ Deno.serve(async (req: Request) => {
       }
     });
 
-    console.log(`Creating user with email: ${email}, role: ${role}`);
+    console.log(`Creating user with email: ${email}, role: ${role}, tenant: ${tenantId || 'default'}`);
 
     // Create user with admin API
     const { data: userData, error: userError } = await supabase.auth.admin.createUser({
@@ -62,7 +63,8 @@ Deno.serve(async (req: Request) => {
       password,
       user_metadata: {
         full_name: fullName || email,
-        role: role
+        role: role,
+        tenant_id: tenantId
       },
       email_confirm: true // Auto-confirm email
     });
@@ -102,6 +104,9 @@ Deno.serve(async (req: Request) => {
 
     console.log(`User created successfully with ID: ${userData.user.id}`);
 
+    // Determine tenant_id - use provided tenantId or default tenant
+    const finalTenantId = tenantId || '00000000-0000-0000-0000-000000000001';
+
     // Create profile for the user
     const { error: profileError } = await supabase
       .from('profiles')
@@ -110,7 +115,8 @@ Deno.serve(async (req: Request) => {
           id: userData.user.id,
           full_name: fullName || email,
           role: role,
-          department: department || null
+          department: department || null,
+          tenant_id: finalTenantId
         }
       ]);
 
@@ -130,7 +136,8 @@ Deno.serve(async (req: Request) => {
           email: userData.user.email,
           full_name: fullName || email,
           role: role,
-          department: department
+          department: department,
+          tenant_id: finalTenantId
         }
       }),
       {
