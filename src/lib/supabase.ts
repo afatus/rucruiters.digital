@@ -25,6 +25,85 @@ type Json =
 type Database = {
   public: {
     Tables: {
+      tenants: {
+        Row: {
+          id: string;
+          name: string;
+          slug: string;
+          domain: string | null;
+          status: 'active' | 'suspended' | 'trial' | 'cancelled';
+          plan: 'basic' | 'professional' | 'enterprise';
+          max_users: number;
+          max_jobs: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          slug: string;
+          domain?: string | null;
+          status?: 'active' | 'suspended' | 'trial' | 'cancelled';
+          plan?: 'basic' | 'professional' | 'enterprise';
+          max_users?: number;
+          max_jobs?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          slug?: string;
+          domain?: string | null;
+          status?: 'active' | 'suspended' | 'trial' | 'cancelled';
+          plan?: 'basic' | 'professional' | 'enterprise';
+          max_users?: number;
+          max_jobs?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      tenant_settings: {
+        Row: {
+          tenant_id: string;
+          logo_url: string | null;
+          primary_color: string;
+          secondary_color: string;
+          custom_domain: string | null;
+          openai_api_key: string | null;
+          email_settings: Json;
+          branding_settings: Json;
+          feature_flags: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          tenant_id: string;
+          logo_url?: string | null;
+          primary_color?: string;
+          secondary_color?: string;
+          custom_domain?: string | null;
+          openai_api_key?: string | null;
+          email_settings?: Json;
+          branding_settings?: Json;
+          feature_flags?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          tenant_id?: string;
+          logo_url?: string | null;
+          primary_color?: string;
+          secondary_color?: string;
+          custom_domain?: string | null;
+          openai_api_key?: string | null;
+          email_settings?: Json;
+          branding_settings?: Json;
+          feature_flags?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       jobs: {
         Row: {
           id: string;
@@ -53,6 +132,7 @@ type Database = {
           application_deadline: string | null;
           status: 'draft' | 'published' | 'paused' | 'closed' | 'cancelled' | null;
           published_at: string | null;
+          tenant_id: string;
         };
         Insert: {
           id?: string;
@@ -81,6 +161,7 @@ type Database = {
           application_deadline?: string | null;
           status?: 'draft' | 'published' | 'paused' | 'closed' | 'cancelled' | null;
           published_at?: string | null;
+          tenant_id: string;
         };
         Update: {
           id?: string;
@@ -109,6 +190,7 @@ type Database = {
           application_deadline?: string | null;
           status?: 'draft' | 'published' | 'paused' | 'closed' | 'cancelled' | null;
           published_at?: string | null;
+          tenant_id?: string;
         };
       };
       profiles: {
@@ -135,6 +217,7 @@ type Database = {
           department?: string | null;
           created_at?: string;
           updated_at?: string;
+          tenant_id?: string;
         };
       };
       interview_questions: {
@@ -144,6 +227,7 @@ type Database = {
           question: string;
           order_index: number;
           created_at: string;
+          tenant_id: string;
         };
         Insert: {
           id?: string;
@@ -151,6 +235,7 @@ type Database = {
           question: string;
           order_index: number;
           created_at?: string;
+          tenant_id: string;
         };
         Update: {
           id?: string;
@@ -158,6 +243,7 @@ type Database = {
           question?: string;
           order_index?: number;
           created_at?: string;
+          tenant_id?: string;
         };
       };
       interviews: {
@@ -173,6 +259,7 @@ type Database = {
           overall_score: number;
           summary: string | null;
           link_sent_count: number;
+          tenant_id: string;
         };
         Insert: {
           id?: string;
@@ -186,6 +273,7 @@ type Database = {
           overall_score?: number;
           summary?: string | null;
           link_sent_count?: number;
+          tenant_id: string;
         };
         Update: {
           id?: string;
@@ -199,6 +287,7 @@ type Database = {
           overall_score?: number;
           summary?: string | null;
           link_sent_count?: number;
+          tenant_id?: string;
         };
       };
       interview_link_logs: {
@@ -208,6 +297,7 @@ type Database = {
           sent_at: string;
           sent_by: string | null;
           created_at: string;
+          tenant_id: string;
         };
         Insert: {
           id?: string;
@@ -215,6 +305,7 @@ type Database = {
           sent_at?: string;
           sent_by?: string | null;
           created_at?: string;
+          tenant_id: string;
         };
         Update: {
           id?: string;
@@ -222,6 +313,7 @@ type Database = {
           sent_at?: string;
           sent_by?: string | null;
           created_at?: string;
+          tenant_id?: string;
         };
       };
       video_responses: {
@@ -232,6 +324,7 @@ type Database = {
           video_url: string;
           duration: number;
           created_at: string;
+          tenant_id: string;
         };
         Insert: {
           id?: string;
@@ -240,6 +333,7 @@ type Database = {
           video_url: string;
           duration?: number;
           created_at?: string;
+          tenant_id: string;
         };
         Update: {
           id?: string;
@@ -248,6 +342,7 @@ type Database = {
           video_url?: string;
           duration?: number;
           created_at?: string;
+          tenant_id?: string;
         };
       };
       ai_analysis: {
@@ -264,6 +359,7 @@ type Database = {
           manager_feedback_by: string | null;
           manager_feedback_at: string | null;
           created_at: string;
+          tenant_id: string;
         };
         Insert: {
           id?: string;
@@ -278,6 +374,7 @@ type Database = {
           manager_feedback_by?: string | null;
           manager_feedback_at?: string | null;
           created_at?: string;
+          tenant_id: string;
         };
         Update: {
           id?: string;
@@ -292,6 +389,7 @@ type Database = {
           manager_feedback_by?: string | null;
           manager_feedback_at?: string | null;
           created_at?: string;
+          tenant_id?: string;
         };
       };
       // ATS Tables
@@ -328,6 +426,7 @@ type Database = {
           is_active?: boolean;
           created_at?: string;
           updated_at?: string;
+          tenant_id?: string;
         };
       };
       job_categories: {
@@ -338,6 +437,7 @@ type Database = {
           parent_category_id: string | null;
           is_active: boolean;
           created_at: string;
+          tenant_id: string;
         };
         Insert: {
           id?: string;
@@ -346,6 +446,7 @@ type Database = {
           parent_category_id?: string | null;
           is_active?: boolean;
           created_at?: string;
+          tenant_id: string;
         };
         Update: {
           id?: string;
@@ -354,6 +455,7 @@ type Database = {
           parent_category_id?: string | null;
           is_active?: boolean;
           created_at?: string;
+          tenant_id?: string;
         };
       };
       candidates: {
@@ -440,6 +542,7 @@ type Database = {
           notes?: string | null;
           created_at?: string;
           updated_at?: string;
+          tenant_id?: string;
         };
       };
       applications: {
@@ -499,6 +602,7 @@ type Database = {
           last_activity_at?: string;
           created_at?: string;
           updated_at?: string;
+          tenant_id?: string;
         };
       };
       application_stages: {
@@ -543,6 +647,7 @@ type Database = {
           interviewer_id?: string | null;
           created_at?: string;
           updated_at?: string;
+          tenant_id?: string;
         };
       };
       candidate_documents: {
@@ -559,6 +664,7 @@ type Database = {
           verified_by: string | null;
           verified_at: string | null;
           uploaded_at: string;
+          tenant_id: string;
         };
         Insert: {
           id?: string;
@@ -573,6 +679,7 @@ type Database = {
           verified_by?: string | null;
           verified_at?: string | null;
           uploaded_at?: string;
+          tenant_id: string;
         };
         Update: {
           id?: string;
@@ -587,6 +694,7 @@ type Database = {
           verified_by?: string | null;
           verified_at?: string | null;
           uploaded_at?: string;
+          tenant_id?: string;
         };
       };
       interview_schedules: {
@@ -643,6 +751,7 @@ type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          tenant_id?: string;
         };
       };
       feedback_forms: {
@@ -661,6 +770,7 @@ type Database = {
           recommendation: 'strong_hire' | 'hire' | 'no_hire' | 'strong_no_hire' | null;
           would_work_with: boolean | null;
           submitted_at: string;
+          tenant_id: string;
         };
         Insert: {
           id?: string;
@@ -677,6 +787,7 @@ type Database = {
           recommendation?: 'strong_hire' | 'hire' | 'no_hire' | 'strong_no_hire' | null;
           would_work_with?: boolean | null;
           submitted_at?: string;
+          tenant_id: string;
         };
         Update: {
           id?: string;
@@ -693,6 +804,7 @@ type Database = {
           recommendation?: 'strong_hire' | 'hire' | 'no_hire' | 'strong_no_hire' | null;
           would_work_with?: boolean | null;
           submitted_at?: string;
+          tenant_id?: string;
         };
       };
       hiring_pipelines: {
@@ -705,6 +817,7 @@ type Database = {
           auto_advance: boolean;
           sla_hours: number | null;
           created_at: string;
+          tenant_id: string;
         };
         Insert: {
           id?: string;
@@ -715,6 +828,7 @@ type Database = {
           auto_advance?: boolean;
           sla_hours?: number | null;
           created_at?: string;
+          tenant_id: string;
         };
         Update: {
           id?: string;
@@ -725,6 +839,7 @@ type Database = {
           auto_advance?: boolean;
           sla_hours?: number | null;
           created_at?: string;
+          tenant_id?: string;
         };
       };
       notifications: {
@@ -739,6 +854,7 @@ type Database = {
           priority: 'low' | 'normal' | 'high' | 'urgent';
           expires_at: string | null;
           created_at: string;
+          tenant_id: string;
         };
         Insert: {
           id?: string;
@@ -751,6 +867,7 @@ type Database = {
           priority?: 'low' | 'normal' | 'high' | 'urgent';
           expires_at?: string | null;
           created_at?: string;
+          tenant_id: string;
         };
         Update: {
           id?: string;
@@ -763,6 +880,7 @@ type Database = {
           priority?: 'low' | 'normal' | 'high' | 'urgent';
           expires_at?: string | null;
           created_at?: string;
+          tenant_id?: string;
         };
       };
       audit_logs: {
@@ -778,6 +896,7 @@ type Database = {
           user_agent: string | null;
           session_id: string | null;
           created_at: string;
+          tenant_id: string;
         };
         Insert: {
           id?: string;
@@ -791,6 +910,7 @@ type Database = {
           user_agent?: string | null;
           session_id?: string | null;
           created_at?: string;
+          tenant_id: string;
         };
         Update: {
           id?: string;
@@ -804,6 +924,7 @@ type Database = {
           user_agent?: string | null;
           session_id?: string | null;
           created_at?: string;
+          tenant_id?: string;
         };
       };
       system_metrics: {
@@ -814,6 +935,7 @@ type Database = {
           metric_unit: string | null;
           tags: Json | null;
           recorded_at: string;
+          tenant_id: string;
         };
         Insert: {
           id?: string;
@@ -822,6 +944,7 @@ type Database = {
           metric_unit?: string | null;
           tags?: Json | null;
           recorded_at?: string;
+          tenant_id: string;
         };
         Update: {
           id?: string;
@@ -830,6 +953,7 @@ type Database = {
           metric_unit?: string | null;
           tags?: Json | null;
           recorded_at?: string;
+          tenant_id?: string;
         };
       };
     };
@@ -863,8 +987,47 @@ type Database = {
           user_created_at?: string | null;
         };
       };
+      tenant_user_roles: {
+        Row: {
+          id: string | null;
+          email: string | null;
+          full_name: string | null;
+          role: string | null;
+          department: string | null;
+          tenant_id: string | null;
+          tenant_name: string | null;
+          tenant_slug: string | null;
+          profile_created_at: string | null;
+          user_created_at: string | null;
+        };
+        Insert: {
+          id?: string | null;
+          email?: string | null;
+          full_name?: string | null;
+          role?: string | null;
+          department?: string | null;
+          profile_created_at?: string | null;
+          user_created_at?: string | null;
+        };
+        Update: {
+          id?: string | null;
+          email?: string | null;
+          full_name?: string | null;
+          role?: string | null;
+          department?: string | null;
+          tenant_id?: string | null;
+          tenant_name?: string | null;
+          tenant_slug?: string | null;
+          profile_created_at?: string | null;
+          user_created_at?: string | null;
+        };
+      };
     };
     Functions: {
+      get_current_tenant_id: {
+        Args: Record<PropertyKey, never>;
+        Returns: string;
+      };
       [_ in never]: never;
     };
     Enums: {

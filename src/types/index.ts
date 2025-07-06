@@ -8,6 +8,7 @@ export interface Job {
   line_manager_id: string | null;
   created_at: string;
   updated_at: string;
+  tenant_id: string;
 }
 
 export interface Profile {
@@ -17,6 +18,7 @@ export interface Profile {
   department: string | null;
   created_at: string;
   updated_at: string;
+  tenant_id: string;
 }
 
 export interface InterviewQuestion {
@@ -25,6 +27,7 @@ export interface InterviewQuestion {
   question: string;
   order_index: number;
   created_at: string;
+  tenant_id: string;
 }
 
 export interface Interview {
@@ -39,6 +42,7 @@ export interface Interview {
   overall_score: number;
   summary: string | null;
   link_sent_count: number;
+  tenant_id: string;
 }
 
 export interface InterviewLinkLog {
@@ -47,6 +51,7 @@ export interface InterviewLinkLog {
   sent_at: string;
   sent_by: string | null;
   created_at: string;
+  tenant_id: string;
 }
 
 export interface VideoResponse {
@@ -56,6 +61,7 @@ export interface VideoResponse {
   video_url: string;
   duration: number;
   created_at: string;
+  tenant_id: string;
 }
 
 export interface AIAnalysis {
@@ -71,4 +77,32 @@ export interface AIAnalysis {
   manager_feedback_by: string | null;
   manager_feedback_at: string | null;
   created_at: string;
+  tenant_id: string;
+}
+
+export interface Tenant {
+  id: string;
+  name: string;
+  slug: string;
+  domain?: string;
+  status: 'active' | 'suspended' | 'trial' | 'cancelled';
+  plan: 'basic' | 'professional' | 'enterprise';
+  max_users: number;
+  max_jobs: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TenantSettings {
+  tenant_id: string;
+  logo_url?: string;
+  primary_color: string;
+  secondary_color: string;
+  custom_domain?: string;
+  openai_api_key?: string;
+  email_settings: Record<string, any>;
+  branding_settings: Record<string, any>;
+  feature_flags: Record<string, any>;
+  created_at: string;
+  updated_at: string;
 }

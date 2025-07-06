@@ -8,6 +8,7 @@ export interface Department {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  tenant_id: string;
 }
 
 export interface JobCategory {
@@ -17,6 +18,7 @@ export interface JobCategory {
   parent_category_id?: string;
   is_active: boolean;
   created_at: string;
+  tenant_id: string;
 }
 
 export interface Candidate {
@@ -46,6 +48,7 @@ export interface Candidate {
   notes?: string;
   created_at: string;
   updated_at: string;
+  tenant_id: string;
 }
 
 export interface Application {
@@ -72,6 +75,7 @@ export interface Application {
   job?: Job;
   candidate?: Candidate;
   assigned_recruiter?: Profile;
+  tenant_id: string;
 }
 
 export interface ApplicationStage {
@@ -87,6 +91,7 @@ export interface ApplicationStage {
   interviewer_id?: string;
   created_at: string;
   updated_at: string;
+  tenant_id: string;
 }
 
 export interface CandidateDocument {
@@ -102,6 +107,7 @@ export interface CandidateDocument {
   verified_by?: string;
   verified_at?: string;
   uploaded_at: string;
+  tenant_id: string;
 }
 
 export interface InterviewSchedule {
@@ -121,6 +127,7 @@ export interface InterviewSchedule {
   created_by?: string;
   created_at: string;
   updated_at: string;
+  tenant_id: string;
 }
 
 export interface FeedbackForm {
@@ -138,6 +145,7 @@ export interface FeedbackForm {
   recommendation?: 'strong_hire' | 'hire' | 'no_hire' | 'strong_no_hire';
   would_work_with?: boolean;
   submitted_at: string;
+  tenant_id: string;
 }
 
 export interface HiringPipeline {
@@ -149,6 +157,7 @@ export interface HiringPipeline {
   auto_advance: boolean;
   sla_hours?: number;
   created_at: string;
+  tenant_id: string;
 }
 
 export interface Notification {
@@ -163,6 +172,7 @@ export interface Notification {
   priority: 'low' | 'normal' | 'high' | 'urgent';
   expires_at?: string;
   created_at: string;
+  tenant_id: string;
 }
 
 export interface AuditLog {
@@ -177,6 +187,7 @@ export interface AuditLog {
   user_agent?: string;
   session_id?: string;
   created_at: string;
+  tenant_id: string;
 }
 
 export interface SystemMetric {
@@ -186,6 +197,7 @@ export interface SystemMetric {
   metric_unit?: string;
   tags: Record<string, any>;
   recorded_at: string;
+  tenant_id: string;
 }
 
 // Enhanced Job interface
@@ -209,6 +221,7 @@ export interface EnhancedJob extends Job {
   // Relations
   department?: Department;
   category?: JobCategory;
+  tenant_id: string;
 }
 
 // Dashboard Analytics
