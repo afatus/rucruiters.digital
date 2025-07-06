@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Users, FileText, BarChart3, Eye, LogOut, Settings, UserCog, Briefcase, TrendingUp, Calendar, Bell, Crown } from 'lucide-react';
+import { Plus, Users, FileText, BarChart3, Eye, LogOut, Settings, UserCog, Briefcase, TrendingUp, Calendar, Bell, Crown, Shield } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Job, Interview, Profile } from '../types';
 import CreateJobForm from './CreateJobForm';
