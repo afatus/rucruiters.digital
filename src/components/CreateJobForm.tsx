@@ -119,7 +119,7 @@ const CreateJobForm: React.FC<CreateJobFormProps> = ({ onCancel, onJobCreated, u
             description: formData.description,
             created_by: user?.id || 'anonymous',
             hiring_manager_id: formData.hiring_manager_id || null,
-            line_manager_id: formData.line_manager_id || null
+            line_manager_id: formData.line_manager_id || null,
             tenant_id: userProfile.tenant_id
           }
         ])
@@ -187,7 +187,7 @@ const CreateJobForm: React.FC<CreateJobFormProps> = ({ onCancel, onJobCreated, u
         const questionInserts = questions.map((question: string, index: number) => ({
           job_id: job.id,
           question,
-          order_index: index
+          order_index: index,
           tenant_id: userProfile.tenant_id
         }));
 
@@ -228,7 +228,7 @@ const CreateJobForm: React.FC<CreateJobFormProps> = ({ onCancel, onJobCreated, u
         const questionInserts = defaultQuestions.map((question: string, index: number) => ({
           job_id: job.id,
           question,
-          order_index: index
+          order_index: index,
           tenant_id: userProfile.tenant_id
         }));
 
