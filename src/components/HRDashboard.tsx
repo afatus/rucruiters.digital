@@ -319,7 +319,7 @@ const HRDashboard: React.FC = () => {
     );
   }
 
-  if (activeTab === 'users' && (userProfile?.role === 'it_admin' || userProfile?.role === 'super_admin')) {
+  if (activeTab === 'users' && userProfile?.role === 'it_admin') {
     return (
       <UserManagement
         onBack={() => setActiveTab('jobs')}
@@ -426,7 +426,7 @@ const HRDashboard: React.FC = () => {
                   <Calendar size={20} />
                   Son Mülakatlar
                 </button>
-                {userProfile?.role === 'it_admin' && (
+                {(userProfile?.role === 'it_admin' || userProfile?.role === 'super_admin') && (
                   <button
                     onClick={() => setActiveTab('users')}
                     className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
