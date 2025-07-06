@@ -64,6 +64,72 @@ Deno.serve(async (req: Request) => {
       }
     });
 
+    // 1. Get user's current role and tenant_id from profiles table
+    const { data: userProfile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role, tenant_id')
+      .eq('id', userId)
+      .single();
+
+    if (profileError || !userProfile) {
+      console.error('Error fetching user profile for deletion check:', profileError);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'User profile not found or error fetching profile for deletion check.'
+        }),
+        {
+          status: 404,
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
+        }
+      );
+    }
+
+    // 2. Implement "last IT_Admin protection"
+    if (userProfile.role === 'it_admin' && userProfile.tenant_id) {
+      const { count, error: countError } = await supabase
+        .from('profiles')
+        .select('id', { count: 'exact' })
+        .eq('role', 'it_admin')
+        .eq('tenant_id', userProfile.tenant_id);
+
+      if (countError) {
+        console.error('Error counting IT admins:', countError);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Error checking IT admin count before deletion.'
+          }),
+          {
+            status: 500,
+            headers: {
+              'Content-Type': 'application/json',
+              ...corsHeaders
+            }
+          }
+        );
+      }
+
+      if (count === 1) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Bu tenanttaki son IT yöneticisini silemezsiniz. En az bir IT yöneticisi kalmalıdır.'
+          }),
+          {
+            status: 409, // Conflict
+            headers: {
+              'Content-Type': 'application/json',
+              ...corsHeaders
+            }
+          }
+        );
+      }
+    }
+
     // Delete the user using admin privileges
     const { error: authError } = await supabase.auth.admin.deleteUser(userId);
 
