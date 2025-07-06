@@ -5,7 +5,6 @@ DROP FUNCTION IF EXISTS get_current_tenant_id();
 CREATE OR REPLACE FUNCTION get_current_tenant_id()
 RETURNS uuid
 LANGUAGE plpgsql
-SECURITY DEFINER
 AS $$
 DECLARE
   user_tenant_id uuid;
@@ -156,7 +155,6 @@ CREATE POLICY "jobs_stakeholders_manage" ON jobs
 CREATE OR REPLACE FUNCTION debug_user_info()
 RETURNS json
 LANGUAGE plpgsql
-SECURITY DEFINER
 AS $$
 DECLARE
   result json;
