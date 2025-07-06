@@ -45,6 +45,24 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Validate role against allowed values
+    const allowedRoles = ['recruiter', 'hiring_manager', 'line_manager', 'candidate', 'hr_operations', 'it_admin'];
+    if (role && !allowedRoles.includes(role)) {
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: `Invalid role. Allowed roles: ${allowedRoles.join(', ')}` 
+        }),
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+
     // Initialize Supabase client with service role key for admin operations
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
