@@ -377,27 +377,14 @@ const ATSDashboard: React.FC<ATSDashboardProps> = ({ userProfile, onSelectInterv
                     <AlertCircle className="text-orange-500 mt-0.5" size={16} />
                     <div className="flex-1">
                       <p className="font-medium text-gray-900">{task.title}</p>
-                    <div 
-                      className="w-full flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors"
-                      onClick={() => onSelectInterview && onSelectInterview(interview)}
-                    >
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900">{interview.candidate_name}</p>
-                        <p className="text-sm text-gray-600">{interview.jobs?.title}</p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(interview.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(interview.status)}`}>
-                          {interview.status.replace('_', ' ')}
-                </div>
-                        {interview.overall_score > 0 && (
-                          <span className="text-xs font-medium text-gray-600">
-                            {interview.overall_score}/10
-                          </span>
-                        )}
-                      </div>
+                      <p className="text-sm text-gray-600">{task.description}</p>
+                      <p className="text-xs text-orange-600 mt-1">Priority: {task.priority}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-600 text-center py-4">No urgent tasks</p>
+              )}
             </div>
           </div>
         </div>
