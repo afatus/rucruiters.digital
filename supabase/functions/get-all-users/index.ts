@@ -1,10 +1,9 @@
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
-// Import Supabase client
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 Deno.serve(async (req: Request) => {
@@ -16,29 +15,19 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    console.log('=== Get All Users Function Started ===');
-    
-    // Initialize Supabase client with service role key for admin operations
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
-    if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('Missing required environment variables');
+    // Get the authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
       return new Response(
-        JSON.stringify({ 
-          success: false,
-          error: 'Server configuration error' 
-        }),
-        {
-          status: 500,
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders,
-          },
-        }
+        JSON.stringify({ success: false, error: 'Authorization header missing' }),
+        { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
     }
 
+    // Initialize Supabase client with service role key
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
@@ -46,44 +35,41 @@ Deno.serve(async (req: Request) => {
       }
     });
 
-    console.log('Calling get_all_users_admin function...');
-
-    // Fetch users with tenant information from the view
-    const { data: users, error } = await supabase
-      .from('tenant_user_roles')
-      .select('*')
-      .order('user_created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching users:', error);
+    // Verify the user's token
+    const token = authHeader.split(' ')[1];
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    
+    if (userError || !user) {
       return new Response(
-        JSON.stringify({ 
-          success: false,
-          error: error.message 
-        }),
-        {
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders,
-          },
-        }
+        JSON.stringify({ success: false, error: 'Invalid or expired token' }),
+        { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
     }
 
-    console.log(`Successfully fetched ${users?.length || 0} users`);
+    // Check if user has admin privileges
+    const userRole = user.user_metadata?.role;
+    if (userRole !== 'it_admin' && userRole !== 'super_admin') {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Insufficient permissions' }),
+        { status: 403, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
+
+    // Fetch users with tenant information
+    const { data: users, error } = await supabase
+      .from('tenant_user_roles')
+      .select('*');
+
+    if (error) {
+      return new Response(
+        JSON.stringify({ success: false, error: error.message }),
+        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        users: users || []
-      }),
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders,
-        },
-      }
+      JSON.stringify({ success: true, users }),
+      { headers: { 'Content-Type': 'application/json', ...corsHeaders } }
     );
 
   } catch (error) {
@@ -91,17 +77,10 @@ Deno.serve(async (req: Request) => {
     
     return new Response(
       JSON.stringify({ 
-        success: false,
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error'
       }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders,
-        },
-      }
+      { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
     );
   }
 });

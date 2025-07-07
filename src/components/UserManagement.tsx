@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Search, Filter, Edit3, Trash2, UserCog, Building, Shield, Mail, Calendar, AlertCircle, CheckCircle, Users, Crown } from 'lucide-react';
+import { ArrowLeft, Plus, Search, Filter, Edit3, Trash2, UserCog, Building, Shield, Mail, Calendar, Crown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Tenant } from '../types';
 import UserFormModal from './UserFormModal';
@@ -43,27 +43,33 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
   ];
 
   useEffect(() => {
-    fetchUsers();
-    fetchTenants();
+    fetchData();
   }, []);
+
+  const fetchData = async () => {
+      setLoading(true);
+      await Promise.all([fetchUsers(), fetchTenants()]);
+      setLoading(false);
+  }
 
   const fetchUsers = async () => {
     try {
-      console.log('Fetching users via Edge Function...');
-      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("User not authenticated");
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-all-users`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+            'Authorization': `Bearer ${session.access_token}`
           }
         }
       );
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
       }
 
       const result = await response.json();
@@ -72,23 +78,16 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
         throw new Error(result.error || 'Failed to fetch users');
       }
 
-      console.log(`Successfully fetched ${result.users.length} users`);
       setUsers(result.users);
     } catch (error) {
       console.error('Error fetching users:', error);
-      alert('Kullanıcılar yüklenirken hata oluştu. Lütfen tekrar deneyin.');
-    } finally {
-      setLoading(false);
+      alert('Kullanıcılar yüklenirken hata oluştu. Lütfen konsolu kontrol edin.');
     }
   };
 
   const fetchTenants = async () => {
     try {
-      const { data, error } = await supabase
-        .from('tenants')
-        .select('*')
-        .order('name');
-      
+      const { data, error } = await supabase.from('tenants').select('*').order('name');
       if (error) throw error;
       setTenants(data || []);
     } catch (error) {
@@ -97,44 +96,36 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Bu kullanıcıyı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.')) {
-      return;
-    }
+    if (!confirm('Bu kullanıcıyı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.')) return;
 
     setDeleting(prev => ({ ...prev, [userId]: true }));
 
     try {
-      console.log(`Attempting to delete user: ${userId}`);
-      
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user-admin`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-          },
-          body: JSON.stringify({ userId })
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error("User not authenticated");
+
+        const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user-admin`,
+            {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ userId })
+            }
+        );
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
         }
-      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
-      }
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error || 'Failed to delete user');
 
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to delete user via admin function');
-      }
-
-      console.log('User deleted successfully');
-
-      // Update local state after successful deletion
-      setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
-      alert('Kullanıcı başarıyla silindi!');
-
+        setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
+        alert('Kullanıcı başarıyla silindi!');
     } catch (error: any) {
       console.error('Error deleting user:', error);
       alert(`Kullanıcı silinirken hata: ${error.message}`);
@@ -149,18 +140,12 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
     fetchUsers();
   };
 
-  const getRoleInfo = (role: string) => {
-    return roles.find(r => r.value === role) || roles[0];
-  };
+  const getRoleInfo = (role: string) => roles.find(r => r.value === role) || roles[0];
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = !searchTerm || 
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (user.full_name && user.full_name.toLowerCase().includes(searchTerm.toLowerCase()));
-    
+    const matchesSearch = !searchTerm || user.email.toLowerCase().includes(searchTerm.toLowerCase()) || (user.full_name && user.full_name.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesRole = !roleFilter || user.role === roleFilter;
     const matchesTenant = !tenantFilter || user.tenant_id === tenantFilter;
-    
     return matchesSearch && matchesRole && matchesTenant;
   });
 
@@ -181,10 +166,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center py-4">
-            <button
-              onClick={onBack}
-              className="mr-4 p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
+            <button onClick={onBack} className="mr-4 p-2 hover:bg-gray-100 rounded-lg transition-colors">
               <ArrowLeft size={20} />
             </button>
             <div className="flex-1">
@@ -194,10 +176,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
               </h1>
               <p className="text-gray-600">Sistem kullanıcılarını yönetin</p>
             </div>
-            <button
-              onClick={() => setShowCreateForm(true)}
-              className="bg-[#6CBE45] text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2"
-            >
+            <button onClick={() => setShowCreateForm(true)} className="bg-[#6CBE45] text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2">
               <Plus size={20} />
               Yeni Kullanıcı
             </button>
@@ -210,9 +189,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center">
-              <Users className="text-[#1C4DA1]" size={24} />
+              <UserCog className="text-[#1C4DA1]" size={24} />
               <div className="ml-4">
-                <p className="text-sm text-gray-600">Toplam Kullanıcı</p>
+                <p className="text-sm text-gray-600">Total Users</p>
                 <p className="text-2xl font-bold text-gray-900">{userStats.total}</p>
               </div>
             </div>
@@ -221,7 +200,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
             <div className="flex items-center">
               <Shield className="text-[#6CBE45]" size={24} />
               <div className="ml-4">
-                <p className="text-sm text-gray-600">IT Adminler</p>
+                <p className="text-sm text-gray-600">IT Admins</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {userStats.byRole.find(r => r.value === 'it_admin')?.count || 0}
                 </p>
@@ -232,7 +211,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
             <div className="flex items-center">
               <Building className="text-purple-600" size={24} />
               <div className="ml-4">
-                <p className="text-sm text-gray-600">Aktif Tenantlar</p>
+                <p className="text-sm text-gray-600">Active Tenants</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {userStats.byTenant.filter(t => t.count > 0).length}
                 </p>
