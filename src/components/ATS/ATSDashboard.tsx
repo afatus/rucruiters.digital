@@ -8,6 +8,7 @@ import { supabase } from '../../lib/supabase';
 
 interface ATSDashboardProps {
   userProfile: any;
+  onSelectInterview?: (interview: any) => void;
 }
 
 interface DashboardAnalytics {
@@ -19,7 +20,7 @@ interface DashboardAnalytics {
   recentInterviews: any[];
 }
 
-const ATSDashboard: React.FC<ATSDashboardProps> = ({ userProfile }) => {
+const ATSDashboard: React.FC<ATSDashboardProps> = ({ userProfile, onSelectInterview }) => {
   const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
   const [recentInterviews, setRecentInterviews] = useState<any[]>([]);
   const [urgentTasks, setUrgentTasks] = useState<any[]>([]);
@@ -376,22 +377,27 @@ const ATSDashboard: React.FC<ATSDashboardProps> = ({ userProfile }) => {
                     <AlertCircle className="text-orange-500 mt-0.5" size={16} />
                     <div className="flex-1">
                       <p className="font-medium text-gray-900">{task.title}</p>
-                      <p className="text-sm text-gray-600">{task.description}</p>
-                      <span className={`inline-block mt-1 px-2 py-1 text-xs rounded-full ${
-                        task.priority === 'high' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {task.priority} priority
-                      </span>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <Award size={48} className="mx-auto mb-4 text-gray-300" />
-                  <p>No urgent tasks!</p>
-                  <p className="text-sm">Everything is on track.</p>
+                    <div 
+                      className="w-full flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => onSelectInterview && onSelectInterview(interview)}
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{interview.candidate_name}</p>
+                        <p className="text-sm text-gray-600">{interview.jobs?.title}</p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(interview.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(interview.status)}`}>
+                          {interview.status.replace('_', ' ')}
                 </div>
-              )}
+                        {interview.overall_score > 0 && (
+                          <span className="text-xs font-medium text-gray-600">
+                            {interview.overall_score}/10
+                          </span>
+                        )}
+                      </div>
             </div>
           </div>
         </div>

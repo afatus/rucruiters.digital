@@ -527,7 +527,10 @@ const HRDashboard: React.FC = () => {
 
             {/* Content based on active tab */}
             {activeTab === 'dashboard' && (
-              <ATSDashboard userProfile={userProfile} />
+              <ATSDashboard 
+                userProfile={userProfile} 
+                onSelectInterview={(interview) => setSelectedInterview(interview)}
+              />
             )}
 
             {activeTab === 'candidates' && (
